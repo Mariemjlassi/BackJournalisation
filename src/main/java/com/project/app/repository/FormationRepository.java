@@ -26,5 +26,6 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
     List<Formation> findAllFormationsWhereRappelNotSentOrNull();
     List<Formation> findByValideFalseAndDateFinPrevueBefore(LocalDate date);
     List<Formation> findByValideTrueAndConfirmationOrganisateurEnvoyeeFalse();
+    List<Formation> findByValideFalseAndProblemeTrue();
 
 }

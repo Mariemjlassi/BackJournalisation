@@ -12,6 +12,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -29,7 +30,7 @@ public class DiplomeService implements IDiplomeService{
     private EmployeRepository employeRepository;
 
     @Transactional
-    public Diplome saveOrAssignDiplome(Long employeId, String libelle, Long typeDiplomeId) {
+    public Diplome saveOrAssignDiplome(Long employeId, String libelle, Long typeDiplomeId, LocalDate dateObtention) {
         Employe employe = employeRepository.findById(employeId)
             .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
 
@@ -44,12 +45,14 @@ public class DiplomeService implements IDiplomeService{
             Diplome diplome = existingDiplome.get();
             diplome.setEmploye(employe);
             diplome.setLibelle(libelle);
+            diplome.setDateObtention(dateObtention);
             return diplomeRepository.save(diplome);
         } else {
             Diplome newDiplome = new Diplome();
             newDiplome.setLibelle(libelle);
             newDiplome.setEmploye(employe);
             newDiplome.setTypeDiplome(typeDiplome);
+            newDiplome.setDateObtention(dateObtention);
             return diplomeRepository.save(newDiplome);
         }
     }
@@ -64,7 +67,7 @@ public class DiplomeService implements IDiplomeService{
     }
     
     @Transactional
-    public Diplome updateDiplomeEmploye(Long diplomeId, Long employeId, String newLibelle, Long newTypeDiplomeId) {
+    public Diplome updateDiplomeEmploye(Long diplomeId, Long employeId, String newLibelle, Long newTypeDiplomeId, LocalDate dateObtention) {
         Diplome diplome = diplomeRepository.findById(diplomeId)
             .orElseThrow(() -> new RuntimeException("Diplôme non trouvé"));
 
@@ -77,7 +80,7 @@ public class DiplomeService implements IDiplomeService{
 
         diplome.setLibelle(newLibelle);
         diplome.setTypeDiplome(typeDiplome);
-
+        diplome.setDateObtention(dateObtention);
         return diplomeRepository.save(diplome);
     }
     

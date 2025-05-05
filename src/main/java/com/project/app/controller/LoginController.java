@@ -2,6 +2,8 @@ package com.project.app.controller;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.velocity.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,7 +11,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -23,12 +24,18 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.project.app.dto.LoginDto;
 import com.project.app.dto.LoginResponse;
+import com.project.app.dto.UtilisateurResponseDto;
+import com.project.app.model.JournalAction;
 import com.project.app.model.Utilisateur;
+import com.project.app.repository.JournalActionRepository;
 import com.project.app.repository.UtilisateurRepository;
 import com.project.app.service.AuthServiceImpl;
+import com.project.app.service.JournalActionService;
 import com.project.app.service.UtilisateurUserDetails;
 import com.project.app.service.UtilisateurUserDetailsService;
 import com.project.app.utils.JwtUtil;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 
 @RestController
@@ -42,6 +49,12 @@ public class LoginController {
     
     @Autowired
     private AuthServiceImpl authService;
+    @Autowired
+    private JournalActionRepository journalActionRepository;
+    
+    
+    @Autowired
+    private JournalActionService journalActionService;
 
     @Autowired
     public LoginController(AuthenticationManager authenticationManager,
@@ -61,6 +74,17 @@ public class LoginController {
             // Authentification utilisateur par username
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+            
+         // Mettre à jour lastLogin après authentification réussie
+            Utilisateur utilisateur = utilisateurRepository.findByUsername(loginRequest.getUsername())
+                    .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé"));
+                
+                utilisateur.setLastLogin(LocalDateTime.now());
+                utilisateurRepository.save(utilisateur);
+                
+                
+                journalActionService.logAction(utilisateur, "Login", "Connexion réussie");
+                
         } catch (BadCredentialsException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Incorrect username or password.");
         }
@@ -108,5 +132,8 @@ public class LoginController {
             .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé avec l'id : " + id));
         return ResponseEntity.ok(utilisateur);
     }
+    
+    
+
 
 }

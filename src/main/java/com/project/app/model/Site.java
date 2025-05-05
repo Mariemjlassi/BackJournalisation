@@ -1,10 +1,6 @@
 package com.project.app.model;
 
-import java.util.LinkedHashSet;
-import java.util.Set;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import jakarta.persistence.*;
 import lombok.Data;

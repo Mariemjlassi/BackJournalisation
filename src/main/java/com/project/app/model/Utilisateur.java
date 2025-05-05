@@ -43,8 +43,8 @@ import lombok.Data;
 	    private Set<Permission> permissions = new HashSet<>();
 		
 	    @Column(name = "last_login")
-	    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
 	    private LocalDateTime lastLogin;
+	    
 
 	    
 	

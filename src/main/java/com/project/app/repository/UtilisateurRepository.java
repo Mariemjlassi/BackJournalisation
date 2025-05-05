@@ -18,16 +18,6 @@ public interface UtilisateurRepository extends JpaRepository<Utilisateur, Long>{
 	Optional<Utilisateur> findByEmail(String email);
     Boolean existsByEmail(String email);
     
-    @Modifying
-    @Query(value = """
-        UPDATE utilisateur u SET u.last_login = :date WHERE u.username = :username;
-        UPDATE rh r SET r.last_login = :date WHERE r.username = :username;
-        UPDATE administrateur a SET a.last_login = :date WHERE a.username = :username;
-        UPDATE responsable r SET r.last_login = :date WHERE r.username = :username;
-        UPDATE directeur d SET d.last_login = :date WHERE d.username = :username;
-        """, 
-        nativeQuery = true)
-    void updateLastLogin(@Param("username") String username, 
-                       @Param("date") LocalDateTime date);
+    
     
 }

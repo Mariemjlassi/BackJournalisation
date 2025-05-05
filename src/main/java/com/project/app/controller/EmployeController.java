@@ -33,9 +33,11 @@ import com.project.app.model.Experience;
 import com.project.app.model.ExperienceAnterieure;
 import com.project.app.model.ExperienceAssad;
 import com.project.app.model.Poste;
+import com.project.app.repository.EmployePosteRepository;
 import com.project.app.service.IEmployeService;
 
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 
 
 @RestController
@@ -43,7 +45,9 @@ import jakarta.persistence.EntityNotFoundException;
 public class EmployeController {
 	@Autowired
     private IEmployeService employeService;
-
+	
+	@Autowired
+	private EmployePosteRepository employePosteRepository;
     @GetMapping
     public List<Employe> getAllEmployes() {
         return employeService.getAllEmployes();
@@ -55,12 +59,12 @@ public class EmployeController {
     }
 
     @GetMapping("/{id}")
-    public Optional<Employe> getEmployeById(@PathVariable Long id) {
+    public Optional<Employe> getEmployeById(@PathVariable ("id") Long id) {
         return employeService.getEmployeById(id);
     }
 
     @DeleteMapping("/{id}")
-    public void deleteEmploye(@PathVariable Long id) {
+    public void deleteEmploye(@PathVariable ("id") Long id) {
         employeService.deleteEmploye(id);
     }
     
@@ -82,18 +86,18 @@ public class EmployeController {
  
     
     @GetMapping("/{id}/disciplines")
-    public List<Discipline> getAllDisciplines(@PathVariable Long id) {
+    public List<Discipline> getAllDisciplines(@PathVariable ("id") Long id) {
         return employeService.getAllDisciplines(id);
     }
     
     @GetMapping("/employes/{id}/experiences/assad")
-    public List<ExperienceAssad> getAllExperiencesAssadByEmployeId(@PathVariable Long id) {
+    public List<ExperienceAssad> getAllExperiencesAssadByEmployeId(@PathVariable ("id") Long id) {
         return employeService.getAllExperiencesAssadByEmployeId(id);
     }
 
     // API pour obtenir la liste des expériences antérieures d'un employé par son ID
     @GetMapping("/employes/{id}/experiences/anterieures")
-    public List<ExperienceAnterieure> getAllExperiencesAnterieuresByEmployeId(@PathVariable Long id) {
+    public List<ExperienceAnterieure> getAllExperiencesAnterieuresByEmployeId(@PathVariable ("id") Long id) {
         return employeService.getAllExperiencesAnterieuresByEmployeId(id);
     }
     
@@ -101,12 +105,12 @@ public class EmployeController {
     
     @PostMapping("/ajouterAvecPoste")
     public ResponseEntity<PosteAvecDatesDTO> ajouterPosteAEmploye(
-            @RequestParam Long employeId,
-            @RequestParam Long posteId,
-            @RequestParam Long directionId,
-            @RequestParam Long siteId,
-            @RequestParam LocalDate dateDebut,
-            @RequestParam(required = false) LocalDate dateFin) {  // dateFin est maintenant optionnelle
+            @RequestParam ("employeId")Long employeId,
+            @RequestParam ("posteId")Long posteId,
+            @RequestParam  ("directionId") Long directionId,
+            @RequestParam  ("siteId")Long siteId,
+            @RequestParam ("dateDebut")LocalDate dateDebut,
+            @RequestParam  (value="dateFin",required = false) LocalDate dateFin) {  // dateFin est maintenant optionnelle
 
         try {
             // Appel du service pour ajouter le poste à l'employé et obtenir le DTO
@@ -131,50 +135,46 @@ public class EmployeController {
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
+    
+    @GetMapping("/details/{employePosteId}")
+    public ResponseEntity<EmployePoste> getPosteDetails(
+            @PathVariable ("employePosteId")Long employePosteId) {
+        
+        EmployePoste employePoste = employeService.getPosteDetailsById(employePosteId);
+        return ResponseEntity.ok(employePoste);
+    }
     @GetMapping("/postes/{employeId}")
-    public ResponseEntity<List<PosteAvecDatesDTO>> getPostesByEmploye(@PathVariable Long employeId) {
-        try {
-            List<PosteAvecDatesDTO> postesAvecDates = employeService.getPostesByEmploye(employeId);
-            return ResponseEntity.ok(postesAvecDates);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-        }
+    @Transactional
+    public List<PosteAvecDatesDTO> getPostesByEmploye(@PathVariable("employeId") Long employeId) {
+        return employePosteRepository.findByEmployeId(employeId)
+            .stream()
+            .map(ep -> new PosteAvecDatesDTO(
+                ep.getId(), // ← Ajouter l'ID de l'association
+                ep.getPoste().getId(),
+                ep.getPoste().getTitre(),
+                ep.getDateDebut(),
+                ep.getDateFin(),
+                ep.getNomDirection(),
+                ep.getNomSite()
+            ))
+            .collect(Collectors.toList());
     }
-    @PutMapping("/modifierPosteemploye")
-    public ResponseEntity<PosteAvecDatesDTO> modifierPosteAEmploye(
-            @RequestParam Long employeId,
-            @RequestParam Long posteId,
-            @RequestParam Long directionId,
-            @RequestParam Long siteId,
-            @RequestParam LocalDate dateDebut,
-            @RequestParam(required = false) LocalDate dateFin) {  // DateFin peut être nulle
-
-        try {
-            // Appel du service pour modifier le poste de l'employé
-            PosteAvecDatesDTO posteAvecDatesDTO = employeService.modifierPosteAEmploye(employeId, posteId, directionId, siteId, dateDebut, dateFin);
-
-            // Retourner une réponse avec le DTO mis à jour
-            return ResponseEntity.ok(posteAvecDatesDTO);
-        } catch (RuntimeException e) {
-            // Gérer les erreurs si quelque chose échoue
-            return ResponseEntity.badRequest().body(null);
-        }
-    }
+    
 
 
     @DeleteMapping("/delete")
-    public ResponseEntity<String> supprimerPoste(@RequestParam Long employeId, @RequestParam Long posteId) {
+    public ResponseEntity<String> supprimerPoste(@RequestParam ("employeId") Long employeId, @RequestParam ("posteId") Long posteId) {
     	employeService.supprimerPostePourEmploye(employeId, posteId);
         return ResponseEntity.ok("Poste supprimé avec succès !");
     }
     
     @PostMapping("/ajouter")
-    public Employe ajouterEmployeAvecPoste(@RequestParam Long posteId,
-                                           @RequestParam Long directionId,
-                                           @RequestParam Long siteId,
+    public Employe ajouterEmployeAvecPoste(@RequestParam ("posteId")Long posteId,
+                                           @RequestParam ("directionId") Long directionId,
+                                           @RequestParam ("siteId")Long siteId,
                                            @RequestBody Employe employe,
-                                           @RequestParam String dateDebut,
-                                           @RequestParam String dateFin) {
+                                           @RequestParam("dateDebut") String dateDebut,
+                                           @RequestParam  ("dateFin")String dateFin) {
         // Convertir les dates
         LocalDate dateDebutLocal = LocalDate.parse(dateDebut);
         LocalDate dateFinLocal = LocalDate.parse(dateFin);
@@ -185,13 +185,13 @@ public class EmployeController {
     
     @PutMapping("/{id}")
     public ResponseEntity<Employe> modifierEmploye(
-            @PathVariable Long id,
+            @PathVariable ("id") Long id,
             @RequestBody Employe employe,
-            @RequestParam(required = false) Long posteId,
-            @RequestParam(required = false) Long directionId,
-            @RequestParam(required = false) Long siteId,
-            @RequestParam(required = false) LocalDate dateDebut,
-            @RequestParam(required = false) LocalDate dateFin) {
+            @RequestParam( value="posteId",required = false) Long posteId,
+            @RequestParam(value="directionId",required = false) Long directionId,
+            @RequestParam(value="siteId",required = false) Long siteId,
+            @RequestParam(value="dateDebut",required = false) LocalDate dateDebut,
+            @RequestParam(value="dateFin",required = false) LocalDate dateFin) {
         
         Employe updatedEmploye = employeService.modifierEmploye(id, employe, posteId, directionId, siteId, dateDebut, dateFin);
         return ResponseEntity.ok(updatedEmploye);
@@ -204,8 +204,8 @@ public class EmployeController {
     
     @GetMapping("/document")
     public ResponseEntity<byte[]> getDocumentByEmployeIdAndFormationId(
-            @RequestParam Long employeId,
-            @RequestParam Long formationId) {
+            @RequestParam  ("employeId")Long employeId,
+            @RequestParam ("formationId") Long formationId) {
 
         // Récupérer le document depuis le service
         byte[] document = employeService.getDocumentByEmployeIdAndFormationId(employeId, formationId);
@@ -221,10 +221,10 @@ public class EmployeController {
     
     @PostMapping("/changer-poste")
     public ResponseEntity<PosteAvecDatesDTO> changerPosteEmploye(
-            @RequestParam Long employeId,
-            @RequestParam Long nouveauPosteId,
-            @RequestParam Long directionId,
-            @RequestParam Long siteId) {
+            @RequestParam ("employeId") Long employeId,
+            @RequestParam ("nouveauPosteId") Long nouveauPosteId,
+            @RequestParam ("directionId")Long directionId,
+            @RequestParam ("siteId") Long siteId) {
         
         try {
             PosteAvecDatesDTO result = employeService.changerPosteEmploye(employeId, nouveauPosteId, directionId, siteId);
@@ -233,6 +233,36 @@ public class EmployeController {
             return ResponseEntity.badRequest().body(null);
         }
     }
+    
+    @DeleteMapping("/poste/{employePosteId}")
+    public ResponseEntity<String> supprimerPoste(@PathVariable ("employePosteId")Long employePosteId) {
+        employeService.supprimerPostePourEmployeParId(employePosteId);
+        return ResponseEntity.ok("Poste supprimé avec succès !");
+    }
+
+    @PutMapping("/poste/{employePosteId}")
+    public ResponseEntity<PosteAvecDatesDTO> modifierPosteAEmploye(
+            @PathVariable("employePosteId") Long employePosteId,
+            @RequestParam( value="posteId",required = false) Long posteId,
+            @RequestParam("directionId") Long directionId,
+            @RequestParam("siteId") Long siteId,
+            @RequestParam("dateDebut") LocalDate dateDebut,
+            @RequestParam( value="dateFin",required = false) LocalDate dateFin) {
+
+    	try {
+            PosteAvecDatesDTO dto = employeService.modifierPosteComplet(
+                employePosteId, 
+                posteId, // Maintenant utilisé
+                directionId, 
+                siteId, 
+                dateDebut, 
+                dateFin);
+            return ResponseEntity.ok(dto);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+        }
+    }
+
     
     
 }

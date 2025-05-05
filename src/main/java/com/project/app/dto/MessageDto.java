@@ -1,10 +1,13 @@
 package com.project.app.dto;
 
+import java.util.List;
+
 import lombok.Data;
 
 @Data
 public class MessageDto {
     private Long id;
+    private List<Long> destinataireIds;
     private String sujet;
     private String contenu;
     private Long expediteurId;

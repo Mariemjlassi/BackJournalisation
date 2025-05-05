@@ -25,6 +25,9 @@ public class UtilisateurUserDetailsService implements UserDetailsService {
 	private final UtilisateurRepository utilisateurRepository;
 	
 	@Autowired
+	private JournalActionService journalActionService;
+	
+	@Autowired
 	public UtilisateurUserDetailsService(UtilisateurRepository utilisateurRepository) {
 		this.utilisateurRepository = utilisateurRepository;
 	}

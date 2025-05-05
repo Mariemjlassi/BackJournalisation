@@ -419,6 +419,13 @@ employe.setAjout(false);
 	 public Optional<EmployePoste> getPosteDetailsByEmployeIdAndPosteId(Long employeId, Long posteId) {
         return employeposterepository.findPosteDetailsByEmployeIdAndPosteId(employeId, posteId);
     }
+	
+	@Override
+	@Transactional
+	public EmployePoste getPosteDetailsById(Long employePosteId) {
+        return employeposterepository.findByIdWithDetails(employePosteId)
+            .orElseThrow(() -> new RuntimeException("Association employé-poste non trouvée"));
+    }
 
 	@Override
 	public void supprimerPostePourEmploye(Long employeId, Long posteId) {
@@ -546,8 +553,61 @@ employe.setAjout(false);
 	            null
 	    );
 	}
+	
+	@Override
+	public void supprimerPostePourEmployeParId(Long employePosteId) {
+	    employeposterepository.deleteById(employePosteId);
+	}
+	
+	@Transactional
+	public PosteAvecDatesDTO modifierPosteComplet(
+	        Long employePosteId, 
+	        Long nouveauPosteId,
+	        Long directionId, 
+	        Long siteId,
+	        LocalDate dateDebut, 
+	        LocalDate dateFin) {
+	    
+	    EmployePoste employePoste = employeposterepository.findById(employePosteId)
+	            .orElseThrow(() -> new RuntimeException("Association employé-poste non trouvée"));
+
+	    // Mise à jour du poste si fourni
+	    if (nouveauPosteId != null) {
+	        Poste nouveauPoste = posteRepository.findById(nouveauPosteId)
+	                .orElseThrow(() -> new RuntimeException("Nouveau poste non trouvé"));
+	        employePoste.setPoste(nouveauPoste);
+	    }
+
+	    // Mise à jour des autres champs
+	    employePoste.setDateDebut(dateDebut);
+	    employePoste.setDateFin(dateFin);
+	    
+	    Direction direction = directionRepository.findById(directionId)
+	            .orElseThrow(() -> new RuntimeException("Direction non trouvée"));
+	    Site site = siteRepository.findById(siteId)
+	            .orElseThrow(() -> new RuntimeException("Site non trouvé"));
+	    
+	    employePoste.setNomDirection(direction.getNom_direction());
+	    employePoste.setNomSite(site.getNom_site());
+
+	    employeposterepository.saveAndFlush(employePoste); // Sauvegarde explicite
+
+	    return new PosteAvecDatesDTO(
+	            employePoste.getId(),
+	            employePoste.getPoste().getId(),
+	            employePoste.getPoste().getTitre(),
+	            employePoste.getDateDebut(),
+	            employePoste.getDateFin(),
+	            employePoste.getNomDirection(),
+	            employePoste.getNomSite()
+	    );
+	}
+
+	@Override
+	public PosteAvecDatesDTO modifierPosteAEmployeParId(Long employePosteId, Long directionId, Long siteId,
+			LocalDate dateDebut, LocalDate dateFin) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }
-
-	
-
-	

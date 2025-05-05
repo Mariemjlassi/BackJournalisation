@@ -14,23 +14,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
-import io.swagger.v3.oas.annotations.media.Schema;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpStatus;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
-import io.swagger.v3.oas.annotations.media.Schema;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpStatus;
 
 @RestController
 @RequestMapping("/recrutement/postes")
@@ -54,11 +40,12 @@ public class PosteController {
     @PostMapping("/ajouter")
     public ResponseEntity<Poste> ajouterPoste(
             @ModelAttribute PosteDTO posteDTO,
-            @RequestPart("document") @Schema(type = "string", format = "binary") MultipartFile document) throws IOException {
-
-        // Ajouter le fichier dans le DTO
-        posteDTO.setDocument(document);
-
+            @RequestPart(value = "document", required = false) MultipartFile document) throws IOException {
+        
+        if (document != null) {
+            posteDTO.setDocument(document);
+        }
+        
         Poste poste = posteService.addPosteWithDirections(posteDTO);
         return new ResponseEntity<>(poste, HttpStatus.CREATED);
     }
@@ -76,20 +63,19 @@ public class PosteController {
     	        )
     	    )
     	)
-    	@PutMapping("/{id}")
-    	public ResponseEntity<Poste> updatePoste(
-    	        @PathVariable Long id,
-    	        @ModelAttribute PosteDTO posteDTO,
-    	        @RequestPart(value = "document", required = false) @Schema(type = "string", format = "binary") MultipartFile document) throws IOException {
+    @PutMapping("/{id}")
+    public ResponseEntity<Poste> updatePoste(
+            @PathVariable("id") Long id,
+            @ModelAttribute PosteDTO posteDTO,
+            @RequestPart(value = "document", required = false) MultipartFile document) throws IOException {
 
-    	    // Ajouter le fichier dans le DTO si présent
-    	    if (document != null) {
-    	        posteDTO.setDocument(document);
-    	    }
+        if (document != null) {
+            posteDTO.setDocument(document);
+        }
 
-    	    Poste updatedPoste = posteService.updatePoste(id, posteDTO);
-    	    return ResponseEntity.ok(updatedPoste);
-    	}
+        Poste updatedPoste = posteService.updatePoste(id, posteDTO);
+        return ResponseEntity.ok(updatedPoste);
+    }
     
     @GetMapping
     public List<Poste> getAllPostes() {

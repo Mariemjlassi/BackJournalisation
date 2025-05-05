@@ -22,7 +22,19 @@ public class FormationDto {
 	    private String responsableEvaluationExterne; 
 	    private List<Long> employeIds;
 	    private MultipartFile fichierPdf;
-	    private Long organisateurId; // Nouveau champ pour l'organisateur
-	    private String titrePoste; // Nouveau champ pour le titre du poste
+	    private Long organisateurId;
+	    private String titrePoste;
 	    private LocalDate dateRappel; 
+	    private List<PeriodeDto> periodes;
+	    private boolean annuler;
+	    private Long enteteId; 
+	 
+	    @Data
+	    public static class PeriodeDto {
+	        private LocalDate dateDebut;
+	        private LocalDate dateFin;
+	        private String formateur;  
+	        private String programme;
+	    }
+
 }

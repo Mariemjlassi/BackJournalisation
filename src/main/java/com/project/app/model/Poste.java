@@ -9,6 +9,7 @@ import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import lombok.Data;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -31,6 +32,7 @@ public class Poste {
     private String competencesRequises;
     private boolean archive = false;
     
+    
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "poste_direction",  // Nom de la table de jointure
@@ -52,4 +54,18 @@ public class Poste {
     @OneToMany(mappedBy = "poste", cascade = CascadeType.ALL)
     @JsonIgnore
     private List<EmployePoste> employePostes;
+    
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "poste_competence_poste",
+        joinColumns = @JoinColumn(name = "poste_id"),
+        inverseJoinColumns = @JoinColumn(name = "competence_poste_id")
+    )
+    private Set<CompetencePoste> competencePostes = new HashSet<>();
+    
+    @ElementCollection
+    @CollectionTable(name = "poste_programmes_formation", joinColumns = @JoinColumn(name = "poste_id"))
+    @Column(name = "programme")
+    private List<String> lesProgrammesDeFormation;
+
 }

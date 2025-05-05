@@ -23,6 +23,7 @@ public interface IPosteService {
 	
 	 public Poste addPosteWithDirections(PosteDTO posteDTO)throws IOException ;
 	 public Optional<Set<Direction>> getDirectionsByPosteId(Long id);
+	 
 	
 	
 

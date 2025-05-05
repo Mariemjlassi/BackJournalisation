@@ -21,13 +21,16 @@ import com.project.app.dto.EmployeResultatDto;
 import com.project.app.dto.FormationDto;
 import com.project.app.dto.FormationDto_Resultat;
 import com.project.app.model.Employe;
+import com.project.app.model.Entete;
 import com.project.app.model.Formation;
+import com.project.app.model.PeriodeFormation;
 import com.project.app.model.RH;
 import com.project.app.model.Responsable;
 import com.project.app.model.ResultatFormation;
 
 import com.project.app.model.Utilisateur;
 import com.project.app.repository.EmployeRepository;
+import com.project.app.repository.EnteteRepository;
 import com.project.app.repository.FormationRepository;
 import com.project.app.repository.RHRepository;
 import com.project.app.repository.UtilisateurRepository;
@@ -56,8 +59,8 @@ public class FormationService implements IFormationService {
     private employeFormationRepository employeFormationRepository;
     @Autowired
     private RHRepository rhrepository ;
-
-    
+    @Autowired
+    private EnteteRepository enteteRepository;
 
     @Autowired
     public FormationService(FormationRepository formationRepository, UtilisateurRepository utilisateurRepository, EmployeRepository employeRepository) {
@@ -282,7 +285,37 @@ public class FormationService implements IFormationService {
         formation.setSousTypeFormation(formationDto.getSousTypeFormation());
         formation.setDateDebutPrevue(formationDto.getDateDebutPrevue());
         formation.setDateFinPrevue(formationDto.getDateFinPrevue());
-        formation.setTitrePoste(formationDto.getTitrePoste()); // Ajouter le titre du poste
+        formation.setTitrePoste(formationDto.getTitrePoste()); 
+     
+
+        if (formationDto.getPeriodes() != null && !formationDto.getPeriodes().isEmpty()) {
+            for (FormationDto.PeriodeDto periodeDto : formationDto.getPeriodes()) {
+                PeriodeFormation periode = new PeriodeFormation();
+                periode.setDateDebut(periodeDto.getDateDebut());
+                periode.setDateFin(periodeDto.getDateFin());
+                periode.setFormateur(periodeDto.getFormateur());
+                periode.setProgramme(periodeDto.getProgramme()); 
+                periode.setFormation(formation); // Ceci est crucial
+                formation.getPeriodes().add(periode);
+            }
+        }
+        if (formationDto.getEnteteId() != null) {
+            Entete entete = enteteRepository.findById(formationDto.getEnteteId())
+                .orElseThrow(() -> new IllegalArgumentException("Entête introuvable avec ID: " + formationDto.getEnteteId()));
+            formation.setEntete(entete);
+        }
+
+        if (formationDto.getResponsableEvaluationId() != null) {
+            Utilisateur responsable = utilisateurRepository.findById(formationDto.getResponsableEvaluationId())
+                    .orElseThrow(() -> new UsernameNotFoundException("Responsable introuvable"));
+
+            formation.setResponsableEvaluation(responsable);
+
+            System.out.println("➡️ Création de notification pour le responsable : " + responsable.getNom());
+            
+            notificationService.creerNotification(responsable, 
+                "Vous avez été assigné comme responsable d'évaluation pour la formation : " + formation.getTitre());
+        }
 
         // Récupérer l'objet RH à partir de l'ID
         Long organisateurId = formationDto.getOrganisateurId();
@@ -305,14 +338,14 @@ public class FormationService implements IFormationService {
                 throw new IllegalArgumentException("Responsable evaluation not found with ID: " + responsableEvaluationId);
             }
         }
-
+        
+        
         // Ajouter le responsable externe (non obligatoire)
         formation.setResponsableEvaluationExterne(formationDto.getResponsableEvaluationExterne());
 
         Formation savedFormation = formationRepository.save(formation);
 
-        MultipartFile fichierPdf = formationDto.getFichierPdf();
-        byte[] pdfBytes = fichierPdf.getBytes();
+      
 
         List<Long> employeIds = formationDto.getEmployeIds();
         List<Employe> employes = employeRepository.findAllById(employeIds);
@@ -321,9 +354,12 @@ public class FormationService implements IFormationService {
             formation_employe formationEmploye = new formation_employe();
             formationEmploye.setEmploye(employe);
             formationEmploye.setFormation(savedFormation);
-            formationEmploye.setDocument(pdfBytes);
+        
             formationEmployeRepository.save(formationEmploye);
         }
+        
+        
+        
 
         return savedFormation.getId(); // Retourner uniquement l'ID de la formation
     }
@@ -370,6 +406,9 @@ public class FormationService implements IFormationService {
         // Si tous les employés ont été évalués, mettre à jour le champ valide de la formation
         if (tousEvalués) {
             formation.setValide(true);
+            formation.setCommente(false);
+            formation.setCommentaire(null);
+            formation.setProbleme(false);
             formationRepository.save(formation);
         } else {
             throw new IllegalStateException("Tous les employés n'ont pas été évalués pour cette formation.");
@@ -419,8 +458,7 @@ public class FormationService implements IFormationService {
         formation.setDateDebutPrevue(formationDto.getDateDebutPrevue());
         formation.setDateFinPrevue(formationDto.getDateFinPrevue());
         formation.setTitrePoste(formationDto.getTitrePoste());
-        
-
+      
         // Mettre à jour l'organisateur
         Long organisateurId = formationDto.getOrganisateurId();
         if (organisateurId != null) {
@@ -462,6 +500,17 @@ public class FormationService implements IFormationService {
             formationEmploye.setEmploye(employe);
             formationEmploye.setFormation(updatedFormation);
             formationEmploye.setDocument(fichierPdf != null ? fichierPdf.getBytes() : null);
+            formation.getPeriodes().clear();
+            for (FormationDto.PeriodeDto periodeDto : formationDto.getPeriodes()) {
+                PeriodeFormation periode = new PeriodeFormation();
+                periode.setFormateur(periodeDto.getFormateur());
+                periode.setProgramme(periodeDto.getProgramme());
+                periode.setDateDebut(periodeDto.getDateDebut());
+                periode.setDateFin(periodeDto.getDateFin());
+                periode.setFormation(formation);
+                formation.getPeriodes().add(periode);
+            }
+
             formationEmployeRepository.save(formationEmploye);
         }
     }
@@ -475,7 +524,11 @@ public class FormationService implements IFormationService {
 
         formationEmploye.setResultat(resultat);
         formationEmploye.setRes(true); // Changer le booléen Resultat en true
-
+        if (resultat == ResultatFormation.REUSSI) {
+            formationEmploye.setCapabilite(true);
+        } else {
+            formationEmploye.setCapabilite(false); // Optionnel: remettre à false si ce n'est pas REUSSI
+        }
         employeFormationRepository.save(formationEmploye);
     }
     @Transactional
@@ -598,14 +651,60 @@ public class FormationService implements IFormationService {
     }
     
     
+    @Transactional
+    public Formation signalerProbleme(Long formationId, String commentaire) {
+        Formation formation = formationRepository.findById(formationId)
+                .orElseThrow(() -> new EntityNotFoundException("Formation non trouvée"));
+        
+        // Mettre à jour les champs
+        formation.setProbleme(true);
+        formation.setValide(false);
+        
+        // Remplacer l'ancien commentaire par le nouveau
+        if (commentaire != null && !commentaire.isEmpty()) {
+            formation.setCommentaire(commentaire);
+            formation.setCommente(true);
+        } else {
+            formation.setCommentaire(null);
+            formation.setCommente(false);
+        }
+        
+        return formationRepository.save(formation);
+    }
+
     
+
+    @Transactional
+    public Formation retirerProbleme(Long formationId) {
+        Formation formation = formationRepository.findById(formationId)
+                .orElseThrow(() -> new EntityNotFoundException("Formation non trouvée"));
+
+        // Réinitialiser les champs liés au problème
+        formation.setProbleme(false);
+        formation.setValide(true); // ou false selon ton cas métier
+        formation.setCommentaire(null);
+        formation.setCommente(false);
+
+        return formationRepository.save(formation);
+    }
+
     
-    
-    
-    
-    
-    
-    
+    public Formation annulerFormation(Long id) {
+        Formation f = formationRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Formation non trouvée"));
+        f.setAnnuler(true);
+        f.setDateAnnulation(LocalDate.now());
+        return formationRepository.save(f);
+    }
+
+    // Réactiver (désanuler) la formation
+    public Formation reactiverFormation(Long id) {
+        Formation f = formationRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Formation non trouvée"));
+        f.setAnnuler(false);
+        f.setDateAnnulation(null);
+        return formationRepository.save(f);
+    }
     
     
     

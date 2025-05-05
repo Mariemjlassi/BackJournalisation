@@ -25,17 +25,17 @@ public class DisciplineController {
     }
 
     @DeleteMapping("/{employeId}/disciplines/{disciplineId}")
-    public void removeDisciplineFromEmploye(@PathVariable Long employeId, @PathVariable Long disciplineId) {
+    public void removeDisciplineFromEmploye(@PathVariable ("employeId") Long employeId, @PathVariable("disciplineId") Long disciplineId) {
         employeService.removeDisciplineFromEmploye(employeId, disciplineId);
     }
 
     @PutMapping("/disciplines/{disciplineId}")
-    public Discipline updateDiscipline(@PathVariable Long disciplineId, @RequestBody Discipline updatedDiscipline) {
+    public Discipline updateDiscipline(@PathVariable ("disciplineId") Long disciplineId, @RequestBody Discipline updatedDiscipline) {
         return employeService.updateDiscipline(disciplineId, updatedDiscipline);
     }
 
     @GetMapping("/{employeId}/disciplines")
-    public List<Discipline> getDisciplinesByEmployeId(@PathVariable Long employeId) {
+    public List<Discipline> getDisciplinesByEmployeId(@PathVariable ("employeId") Long employeId) {
         return employeService.getDisciplinesByEmployeId(employeId);
     }
 }

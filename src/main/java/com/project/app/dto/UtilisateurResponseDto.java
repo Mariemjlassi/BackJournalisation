@@ -9,7 +9,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
-@AllArgsConstructor
 public class UtilisateurResponseDto {
 	private Long id;
     private String nom;
@@ -19,5 +18,29 @@ public class UtilisateurResponseDto {
     private String role;
     private LocalDateTime lastLogin;
     private Set<Permission> permissions;
+    
+    public UtilisateurResponseDto(Long id, String nom, String prenom, String email, String username, String role, Set<Permission> permissions) {
+        this.id = id;
+        this.nom = nom;
+        this.prenom = prenom;
+        this.email = email;
+        this.username = username;
+        this.role = role;
+        this.permissions = permissions;
+    }
+
+    public UtilisateurResponseDto(Long id, String nom, String prenom, String email, String username, String role,
+            Set<Permission> permissions, LocalDateTime lastLogin) {
+this.id = id;
+this.nom = nom;
+this.prenom = prenom;
+this.email = email;
+this.username = username;
+this.role = role;
+this.permissions = permissions;
+this.lastLogin = lastLogin;
+}
+
+ 
 
 }

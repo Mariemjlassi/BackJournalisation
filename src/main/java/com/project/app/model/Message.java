@@ -22,8 +22,8 @@ public class Message {
     @Column(columnDefinition = "TEXT")
     private String contenu;
 
-    @ManyToOne
-    @JoinColumn(name = "expediteur_id")
+    @ManyToOne(optional = false)  // Forces expediteur to be non-null
+    @JoinColumn(name = "expediteur_id", nullable = false)
     private Utilisateur expediteur;
 
     @ManyToOne

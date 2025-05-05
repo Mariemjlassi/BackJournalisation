@@ -1,5 +1,6 @@
 package com.project.app.service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -8,8 +9,8 @@ import com.project.app.model.Diplome;
 public interface IDiplomeService {
 	
 	public Diplome saveDiplome(Long idType, String libelleTypeDiplome, String libelle);
-	public Diplome saveOrAssignDiplome(Long employeId, String libelle, Long typeDiplomeId);
-	public Diplome updateDiplomeEmploye(Long diplomeId, Long employeId, String newLibelle, Long newTypeDiplomeId);
+	public Diplome saveOrAssignDiplome(Long employeId, String libelle, Long typeDiplomeId, LocalDate dateObtention);
+	public Diplome updateDiplomeEmploye(Long diplomeId, Long employeId, String newLibelle, Long newTypeDiplomeId, LocalDate dateObtention);
 	public void deleteDiplome(Long diplomeId, Long employeId);
 	public List<Diplome> getDiplomesByEmploye(Long employeId);
 	public List<Diplome>getAllDiplomes();

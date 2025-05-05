@@ -26,12 +26,7 @@ public class TypeDiplomeController {
     }
 
 
-    
-    @GetMapping("/all")
-    public ResponseEntity<List<TypeDiplome>> getAllTypeDiplomes() {
-        return ResponseEntity.ok(typeDiplomeService.getAllTypeDiplomes());
-    }
-
+  
     
     @GetMapping("/{id}")
     public ResponseEntity<TypeDiplome> getTypeDiplomeById(@PathVariable("id") Long id) {

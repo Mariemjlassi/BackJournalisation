@@ -1,8 +1,10 @@
 package com.project.app.service;
 
 import com.project.app.dto.PosteDTO;
+import com.project.app.model.CompetencePoste;
 import com.project.app.model.Direction;
 import com.project.app.model.Poste;
+import com.project.app.repository.CompetencePosteRepository;
 import com.project.app.repository.DirectionRepository;
 import com.project.app.repository.PosteRepository;
 
@@ -25,6 +27,10 @@ public class PosteService implements IPosteService {
     private PosteRepository posteRepository;
     @Autowired
     private DirectionRepository directionRepository;
+    
+    @Autowired
+    private CompetencePosteRepository competencePosteRepository;
+
     @Override
     public Poste ajouterPoste(Poste poste) {
         return posteRepository.save(poste);
@@ -52,7 +58,19 @@ public class PosteService implements IPosteService {
         poste.setNiveauExperience(posteDto.getNiveauExperience());
         poste.setDiplomeRequis(posteDto.getDiplomeRequis());
         poste.setCompetencesRequises(posteDto.getCompetencesRequises());
+        
+     // Mettre à jour les compétences associées
+        if (posteDto.getCompetencePosteIds() != null) {
+            Set<CompetencePoste> competencePostes = posteDto.getCompetencePosteIds().stream()
+                .map(competencePosteRepository::findById)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toSet());
 
+            poste.setCompetencePostes(competencePostes);
+        }
+
+       
         // Mettre à jour les directions
         Set<Direction> directions = posteDto.getDirectionIds() != null
                 ? posteDto.getDirectionIds().stream()
@@ -68,7 +86,7 @@ public class PosteService implements IPosteService {
         if (posteDto.getDocument() != null) {
             poste.setDocument(posteDto.getDocument().getBytes());  // Convertir le fichier en tableau de bytes
         }
-
+        
         return posteRepository.save(poste);  // Sauvegarder les modifications
     }
     
@@ -81,6 +99,31 @@ public class PosteService implements IPosteService {
         poste.setNiveauExperience(posteDTO.getNiveauExperience());
         poste.setDiplomeRequis(posteDTO.getDiplomeRequis());
         poste.setCompetencesRequises(posteDTO.getCompetencesRequises());
+        poste.setLesProgrammesDeFormation(posteDTO.getLesProgrammesDeFormation());
+        
+     // Mettre à jour les compétences associées
+     // Ajouter les compétences associées
+        if (posteDTO.getCompetencePosteIds() != null) {
+            Set<CompetencePoste> competencePostes = posteDTO.getCompetencePosteIds().stream()
+                .map(competencePosteRepository::findById)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toSet());
+
+            poste.setCompetencePostes(competencePostes);
+        }
+
+
+        
+        if (posteDTO.getCompetencePosteIds() != null) {
+            Set<CompetencePoste> competencePostes = posteDTO.getCompetencePosteIds().stream()
+                .map(competencePosteRepository::findById)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toSet());
+
+            poste.setCompetencePostes(competencePostes);
+        }
 
         // Récupérer les directions par leurs IDs
         Set<Direction> directions = new HashSet<>();
@@ -97,6 +140,8 @@ public class PosteService implements IPosteService {
         if (posteDTO.getDocument() != null) {
             poste.setDocument(posteDTO.getDocument().getBytes());  // Convertir le fichier en tableau de bytes
         }
+       
+
 
         return posteRepository.save(poste);  // Sauvegarder le poste dans la base de données
     }

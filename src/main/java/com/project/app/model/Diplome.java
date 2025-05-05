@@ -1,5 +1,7 @@
 package com.project.app.model;
 
+import java.time.LocalDate;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.Entity;
@@ -19,6 +21,7 @@ public class Diplome {
     private Long id;
 
     private String libelle;
+    private LocalDate dateObtention;
     private boolean archive=false;
     
     public Diplome() {

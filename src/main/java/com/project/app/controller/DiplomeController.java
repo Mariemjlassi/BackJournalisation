@@ -49,7 +49,8 @@ public class DiplomeController {
 	    Diplome diplome = diplomeService.saveOrAssignDiplome(
 	        request.getEmployeId(), 
 	        request.getLibelle(), 
-	        request.getTypeDiplomeId()
+	        request.getTypeDiplomeId(),
+	        request.getDateObtention()
 	    );
 	    return ResponseEntity.ok(diplome);
 	}
@@ -76,7 +77,8 @@ public class DiplomeController {
             diplomeId, 
             request.getEmployeId(),  
             request.getLibelle(), 
-            request.getTypeDiplomeId()
+            request.getTypeDiplomeId(),
+            request.getDateObtention()
         );
         return ResponseEntity.ok(updatedDiplome);
     }
@@ -88,7 +90,9 @@ public class DiplomeController {
         @PathVariable("employeId") Long employeId
     ) {
         diplomeService.deleteDiplome(diplomeId, employeId);
-        return ResponseEntity.ok("Diplôme supprimé avec succès !");
+        return ResponseEntity.noContent().build();
+
+
     }
     
     @GetMapping("/all")
@@ -97,7 +101,6 @@ public class DiplomeController {
     }
     
     @PostMapping("/{id_type}")
-    @PreAuthorize("hasAuthority('PERM_AJOUTER_DIPLOME')")
     public ResponseEntity<Diplome> addDiplome(@PathVariable("id_type") Long id,@RequestBody DiplomeRequest request) {
         Diplome diplome = diplomeService.saveDiplome(id,request.getLibelleTypeDiplome(), request.getLibelle());
         return ResponseEntity.ok(diplome);
@@ -124,9 +127,5 @@ public class DiplomeController {
         diplomeService.deleteDiplomePermanently(id);
         return ResponseEntity.noContent().build();
     }
-
-
-
-
 
 }

@@ -26,7 +26,7 @@ public class ExperienceController {
 	
 	@PostMapping("/anterieure/{employeId}")
     public ResponseEntity<ExperienceAnterieure> addExperienceAnterieure(
-            @PathVariable Long employeId,
+            @PathVariable("employeId") Long employeId,
             @RequestBody ExperienceAnterieure experience) {
         ExperienceAnterieure savedExperience = experienceService.addExperienceAnterieure(employeId, experience);
         return ResponseEntity.ok(savedExperience);
@@ -35,14 +35,14 @@ public class ExperienceController {
  
     @PostMapping("/assad/{employeId}")
     public ResponseEntity<ExperienceAssad> addExperienceAssad(
-            @PathVariable Long employeId,
+            @PathVariable ("employeId")Long employeId,
             @RequestBody ExperienceAssad experience) {
         ExperienceAssad savedExperience = experienceService.addExperienceAssad(employeId, experience);
         return ResponseEntity.ok(savedExperience);
     }
     @PutMapping("/assad/{id}")
     public ResponseEntity<ExperienceAssad> modifierExperienceAssad(
-            @PathVariable Long id,
+            @PathVariable ("id")Long id,
             @RequestBody ExperienceAssad nouvelleExperience) {
         
         ExperienceAssad experienceModifiee = experienceService.modifierExperienceAssad(id, nouvelleExperience);
@@ -52,7 +52,7 @@ public class ExperienceController {
     // Modifier une expérience Anterieure
     @PutMapping("/anterieure/{id}")
     public ResponseEntity<ExperienceAnterieure> modifierExperienceAnterieure(
-            @PathVariable Long id,
+            @PathVariable ("id") Long id,
             @RequestBody ExperienceAnterieure nouvelleExperience) {
         
         ExperienceAnterieure experienceModifiee = experienceService.modifierExperienceAnterieure(id, nouvelleExperience);
@@ -63,14 +63,14 @@ public class ExperienceController {
     
     
     @GetMapping("/assad/{employeId}")
-    public ResponseEntity<List<ExperienceAssad>> getExperiencesAssad(@PathVariable Long employeId) {
+    public ResponseEntity<List<ExperienceAssad>> getExperiencesAssad(@PathVariable ("employeId") Long employeId) {
         List<ExperienceAssad> experiences = experienceService.getAllExperienceAssadByEmployeId(employeId);
         return ResponseEntity.ok(experiences);
     }
 
     // Endpoint pour récupérer les expériences de type "Antérieure" d'un employé
     @GetMapping("/anterieure/{employeId}")
-    public ResponseEntity<List<ExperienceAnterieure>> getExperiencesAnterieure(@PathVariable Long employeId) {
+    public ResponseEntity<List<ExperienceAnterieure>> getExperiencesAnterieure(@PathVariable ("employeId")Long employeId) {
         List<ExperienceAnterieure> experiences = experienceService.getAllExperienceAnterieureByEmployeId(employeId);
         return ResponseEntity.ok(experiences);
     }
@@ -78,16 +78,16 @@ public class ExperienceController {
     
     @DeleteMapping("/experienceAssad/{employeId}/{experienceId}")
     public void deleteExperienceAssad(
-        @PathVariable Long employeId, 
-        @PathVariable Long experienceId) {
+        @PathVariable ("employeId") Long employeId, 
+        @PathVariable ("experienceId") Long experienceId) {
         experienceService.deleteExperienceAssad(employeId, experienceId);
     }
 
     
     @DeleteMapping("/experienceAnterieure/{employeId}/{experienceId}")
     public void deleteExperienceAnterieure(
-        @PathVariable Long employeId, 
-        @PathVariable Long experienceId) {
+        @PathVariable ("employeId") Long employeId, 
+        @PathVariable ("experienceId") Long experienceId) {
         experienceService.deleteExperienceAnterieure(employeId, experienceId);
     }
     

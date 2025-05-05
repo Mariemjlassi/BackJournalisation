@@ -32,8 +32,17 @@ public class Formation {
     private boolean emailEnvoye;
     private String fichierPdfUrl;  // Ajouter le champ pour stocker l'URL du fichier PDF
     private boolean valide= false;
+    @Column(length = 1000)
     private String commentaire;
     private boolean commente = false;
+    private boolean probleme = false; 
+    @OneToMany(mappedBy = "formation", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PeriodeFormation> periodes = new ArrayList<>();
+   
+    @Column(nullable = false)
+    private boolean annuler = false;
+
+    private LocalDate dateAnnulation;
     // Getters et setters
     public String getFichierPdfUrl() {
         return fichierPdfUrl;
@@ -58,6 +67,10 @@ public class Formation {
     @ManyToOne
     @JoinColumn(name = "responsable_evaluation_id")
     private Utilisateur responsableEvaluation; 
+    
+    @ManyToOne
+    @JoinColumn(name = "entete_id") // clé étrangère
+    private Entete entete;
 
     private String responsableEvaluationExterne; 
     
@@ -108,6 +121,7 @@ public class Formation {
         this.confirmationOrganisateurEnvoyee = confirmationOrganisateurEnvoyee;
     }
     
-    
+
+
     
 }

@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.springframework.http.ResponseEntity;
+
 import com.project.app.dto.EmployeDTO;
 import com.project.app.dto.EmployePosteRequest;
 import com.project.app.dto.EmployeUpdateDTO;
@@ -45,6 +47,21 @@ public interface IEmployeService {
 	  public Employe modifierEmploye(Long id, Employe employeModifie, Long posteId, Long directionId, Long siteId, LocalDate dateDebut, LocalDate dateFin) ;
 	  public List<Employe> getEmployesWithoutPoste();
 		public byte[] getDocumentByEmployeIdAndFormationId(Long employeId, Long formationId) ;
-		public PosteAvecDatesDTO changerPosteEmploye(Long employeId, Long nouveauPosteId, Long directionId, Long siteId);
+		public PosteAvecDatesDTO changerPosteEmploye(Long employeId, Long nouveauPosteId, Long directionId,
+				Long siteId);
+		
+		public void supprimerPostePourEmployeParId(Long employePosteId);
+		public PosteAvecDatesDTO modifierPosteAEmployeParId(
+		        Long employePosteId, Long directionId, Long siteId, LocalDate dateDebut, LocalDate dateFin);
+		
+		public EmployePoste getPosteDetailsById(Long employePosteId);
+		public PosteAvecDatesDTO modifierPosteComplet(
+		        Long employePosteId, 
+		        Long nouveauPosteId,
+		        Long directionId, 
+		        Long siteId,
+		        LocalDate dateDebut, 
+		        LocalDate dateFin) ;
+
 	  
 }

@@ -1,5 +1,6 @@
 package com.project.app.controller;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -86,9 +87,8 @@ public Direction createDirectionWithSites(@RequestBody DirectionDTO directionDTO
 
 // Obtenir les sites associés à une direction
 @GetMapping("/{directionId}/sites")
-public Set<Site> getSitesByDirection(@PathVariable Long directionId) {
-    return directionservice.getSitesByDirection(directionId);
+public List<Site> getSitesByDirection(@PathVariable("directionId") Long directionId) {
+    return new ArrayList<>(directionservice.getSitesByDirection(directionId));
 }
-
 }
 

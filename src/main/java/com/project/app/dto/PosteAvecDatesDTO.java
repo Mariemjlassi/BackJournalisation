@@ -6,6 +6,7 @@ import lombok.Data;
 
 @Data
 public class PosteAvecDatesDTO {
+	private Long employePosteId;
     private Long posteId;
     private String titre;
     private LocalDate dateDebut;
@@ -15,6 +16,17 @@ public class PosteAvecDatesDTO {
 
     public PosteAvecDatesDTO(Long posteId, String titre, LocalDate dateDebut, LocalDate dateFin, String nomDirection, String nomSite) {
         this.posteId = posteId;
+        this.titre = titre;
+        this.dateDebut = dateDebut;
+        this.dateFin = dateFin;
+        this.nomDirection = nomDirection;
+        this.nomSite = nomSite;
+    }
+    
+    public PosteAvecDatesDTO(Long employePosteId,Long posteId, String titre, LocalDate dateDebut, LocalDate dateFin, String nomDirection, String nomSite) {
+        this.employePosteId=employePosteId;
+    	this.posteId = posteId;
+        
         this.titre = titre;
         this.dateDebut = dateDebut;
         this.dateFin = dateFin;

@@ -21,31 +21,38 @@ import com.project.app.repository.UtilisateurRepository;
 	    @Autowired
 	    private UtilisateurRepository utilisateurRepository;
 	
-	    public Message envoyerMessage(Long expediteurId, Long destinataireId, String sujet, String contenu, Long parentId) {
-	        if (expediteurId == null || destinataireId == null) {
-	            throw new IllegalArgumentException("Expéditeur ou destinataire ne peuvent pas être nuls");
+	    public List<Message> envoyerMessage(Long expediteurId, List<Long> destinataireIds, String sujet, String contenu, Long parentId) {
+	        if (expediteurId == null || destinataireIds == null || destinataireIds.isEmpty()) {
+	            throw new IllegalArgumentException("Expéditeur et au moins un destinataire doivent être spécifiés");
 	        }
-	
+
 	        Utilisateur expediteur = utilisateurRepository.findById(expediteurId)
 	                .orElseThrow(() -> new RuntimeException("Expéditeur non trouvé"));
-	
-	        Utilisateur destinataire = utilisateurRepository.findById(destinataireId)
-	                .orElseThrow(() -> new RuntimeException("Destinataire non trouvé"));
-	
-	        Message message = new Message();
-	        message.setExpediteur(expediteur);
-	        message.setDestinataire(destinataire);
-	        message.setSujet(sujet);
-	        message.setContenu(contenu);
-	        message.setDateEnvoi(LocalDateTime.now());
-	
+
+	        Message messageParent = null;
 	        if (parentId != null) {
-	            Message parent = messageRepository.findById(parentId)
+	            messageParent = messageRepository.findById(parentId)
 	                    .orElseThrow(() -> new RuntimeException("Message parent non trouvé"));
-	            message.setMessageParent(parent);
 	        }
-	
-	        return messageRepository.save(message);
+
+	        List<Message> messages = new ArrayList<>();
+
+	        for (Long destinataireId : destinataireIds) {
+	            Utilisateur destinataire = utilisateurRepository.findById(destinataireId)
+	                    .orElseThrow(() -> new RuntimeException("Destinataire non trouvé"));
+
+	            Message message = new Message();
+	            message.setExpediteur(expediteur);
+	            message.setDestinataire(destinataire);
+	            message.setSujet(sujet);
+	            message.setContenu(contenu);
+	            message.setDateEnvoi(LocalDateTime.now());
+	            message.setMessageParent(messageParent);
+
+	            messages.add(messageRepository.save(message));
+	        }
+
+	        return messages;
 	    }
 	
 	

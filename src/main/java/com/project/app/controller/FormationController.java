@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
 import org.apache.velocity.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -23,7 +25,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.project.app.dto.FormationDto;
+import com.project.app.dto.FormationDto.PeriodeDto;
 import com.project.app.dto.FormationDto_Resultat;
 import com.project.app.model.Formation;
 import com.project.app.model.ResultatFormation;
@@ -85,14 +92,14 @@ public class FormationController {
     	        description = "ID de la formation",
     	        required = true
     	    )
-    	    @PathVariable Long formationId,
+    	    @PathVariable("formationId") Long formationId,
 
     	    @Parameter(
     	        description = "ID de l'employé",
     	        required = true
     	       
     	    )
-    	    @PathVariable Long employeId,
+    	    @PathVariable("employeId") Long employeId,
 
     	    @Parameter(
     	        description = "Fichier PDF à uploader",
@@ -127,8 +134,58 @@ public class FormationController {
     }
     
     
+    
+    
+    public FormationDto mapToDto(Formation formation) {
+        FormationDto dto = new FormationDto();
+        dto.setTitre(formation.getTitre());
+        dto.setDescription(formation.getDescription());
+        dto.setTypeFormation(formation.getTypeFormation());
+        dto.setSousTypeFormation(formation.getSousTypeFormation());
+        dto.setDateDebutPrevue(formation.getDateDebutPrevue());
+        dto.setDateFinPrevue(formation.getDateFinPrevue());
+        dto.setResponsableEvaluationId(
+            formation.getResponsableEvaluation() != null ? formation.getResponsableEvaluation().getId() : null
+        );
+        dto.setResponsableEvaluationExterne(formation.getResponsableEvaluationExterne());
+        dto.setOrganisateurId(
+            formation.getOrganisateur() != null ? formation.getOrganisateur().getId() : null
+        );
+        dto.setTitrePoste(formation.getTitrePoste());
+        dto.setDateRappel(formation.getDateRappel());
+        dto.setEnteteId(
+            formation.getEntete() != null ? formation.getEntete().getId() : null
+        );
+       
+      
+        dto.setAnnuler(formation.isAnnuler());
+
+        // ✅ Mapper les périodes
+        if (formation.getPeriodes() != null) {
+            List<PeriodeDto> periodeDtos = formation.getPeriodes().stream().map(p -> {
+                PeriodeDto periodeDto = new PeriodeDto();
+                periodeDto.setDateDebut(p.getDateDebut());
+                periodeDto.setDateFin(p.getDateFin());
+                periodeDto.setFormateur(p.getFormateur());
+                periodeDto.setProgramme(p.getProgramme());
+                return periodeDto;
+            }).collect(Collectors.toList());
+            dto.setPeriodes(periodeDtos);
+        }
+
+        return dto;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
     @GetMapping("/responsable/{responsableId}")
-    public List<Formation> getFormationsByResponsable(@PathVariable Long responsableId) {
+    public List<Formation> getFormationsByResponsable(@PathVariable("responsableId") Long responsableId) {
         return formationService.getFormationsParResponsable(responsableId);
     }
    
@@ -160,12 +217,15 @@ public class FormationController {
     	        @RequestParam("sousTypeFormation") String sousTypeFormation,
     	        @RequestParam("dateDebutPrevue") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateDebutPrevue,
     	        @RequestParam("dateFinPrevue") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFinPrevue,
-    	        @RequestParam(value = "responsableEvaluationId", required = false) Long responsableEvaluationId, // Non obligatoire
-    	        @RequestParam(value = "responsableEvaluationExterne", required = false) String responsableEvaluationExterne, // Non obligatoire
+    	        @RequestParam(value = "responsableEvaluationId", required = false) Long responsableEvaluationId,
+    	        @RequestParam(value = "responsableEvaluationExterne", required = false) String responsableEvaluationExterne,
     	        @RequestParam("employeIds") List<Long> employeIds,
-    	        @RequestParam("fichierPdf") MultipartFile fichierPdf,
-    	        @RequestParam("organisateurId") Long organisateurId, // Nouveau champ
-    	        @RequestParam("titrePoste") String titrePoste) throws IOException { // Nouveau champ
+    
+    	        @RequestParam("organisateurId") Long organisateurId,
+    	        @RequestParam(value = "periodes", required = false) String periodesJson,
+    	        @RequestParam("enteteId") Long enteteId,
+    	        
+    	        @RequestParam("titrePoste") String titrePoste) throws IOException {
 
     	    FormationDto formationDto = new FormationDto();
     	    formationDto.setTitre(titre);
@@ -177,14 +237,29 @@ public class FormationController {
     	    formationDto.setResponsableEvaluationId(responsableEvaluationId);
     	    formationDto.setResponsableEvaluationExterne(responsableEvaluationExterne);
     	    formationDto.setEmployeIds(employeIds);
-    	    formationDto.setFichierPdf(fichierPdf);
-    	    formationDto.setOrganisateurId(organisateurId); // Ajouter l'organisateur
-    	    formationDto.setTitrePoste(titrePoste); // Ajouter le titre du poste
+    	   
+    	    formationDto.setOrganisateurId(organisateurId);
+    	    formationDto.setTitrePoste(titrePoste);
+    	    formationDto.setEnteteId(enteteId);
+    	  
 
+    	    if (periodesJson != null && !periodesJson.isEmpty()) {
+    	        try {
+    	            ObjectMapper mapper = new ObjectMapper();
+    	            mapper.registerModule(new JavaTimeModule());
+    	            List<FormationDto.PeriodeDto> periodes = mapper.readValue(
+    	                    periodesJson, 
+    	                    new TypeReference<List<FormationDto.PeriodeDto>>() {});
+    	            System.out.println("Périodes parsées: " + periodes); // Log de débogage
+    	            formationDto.setPeriodes(periodes);
+    	        } catch (Exception e) {
+    	            System.err.println("Erreur parsing JSON périodes: " + e.getMessage());
+    	            throw new IllegalArgumentException("Format JSON des périodes invalide");
+    	        }
+    	    }
     	    Long formationId = formationService.ajouterFormation(formationDto);
-    	    return ResponseEntity.ok(formationId); // Retourner uniquement l'ID de la formation
+    	    return ResponseEntity.ok(formationId);
     	}
-    
 
     @Operation(
     	    summary = "Vérifier et valider une formation",
@@ -219,7 +294,7 @@ public class FormationController {
     	        description = "ID de la formation",
     	        required = true
     	    )
-    	    @PathVariable Long formationId) {
+    	    @PathVariable("formationId") Long formationId) {
 
     	    try {
     	        formationService.verifierEtValiderFormation(formationId);
@@ -235,7 +310,7 @@ public class FormationController {
     
     
     @PutMapping("/{id}/commentaire")
-    public ResponseEntity<String> ajouterCommentaire(@PathVariable Long id, @RequestBody String commentaire) {
+    public ResponseEntity<String> ajouterCommentaire(@PathVariable("id") Long id, @RequestBody String commentaire) {
         System.out.println("Commentaire reçu : " + commentaire);
 
         Optional<Formation> formationOptional = formationRepository.findById(id);
@@ -260,52 +335,75 @@ public class FormationController {
     	        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
     	    }
     	)
-    	@PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    	public ResponseEntity<String> modifierFormation(
-    	        @PathVariable Long id,
-    	        @RequestParam("titre") String titre,
-    	        @RequestParam("description") String description,
-    	        @RequestParam("typeFormation") String typeFormation,
-    	        @RequestParam("sousTypeFormation") String sousTypeFormation,
-    	        @RequestParam("dateDebutPrevue") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateDebutPrevue,
-    	        @RequestParam("dateFinPrevue") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFinPrevue,
-    	        @RequestParam(value = "responsableEvaluationId", required = false) Long responsableEvaluationId,
-    	        @RequestParam(value = "responsableEvaluationExterne", required = false) String responsableEvaluationExterne,
-    	        @RequestParam("employeIds") List<Long> employeIds,
-    	        @RequestParam(value = "fichierPdf", required = false) MultipartFile fichierPdf,
-    	        @RequestParam("organisateurId") Long organisateurId,
-    	        @RequestParam("titrePoste") String titrePoste) throws IOException {
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<String> modifierFormation(
+            @PathVariable("id") Long id,
+            @RequestParam("titre") String titre,
+            @RequestParam("description") String description,
+            @RequestParam("typeFormation") String typeFormation,
+            @RequestParam("sousTypeFormation") String sousTypeFormation,
+            @RequestParam("dateDebutPrevue") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateDebutPrevue,
+            @RequestParam("dateFinPrevue") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFinPrevue,
+            @RequestParam(value = "responsableEvaluationId", required = false) Long responsableEvaluationId,
+            @RequestParam(value = "responsableEvaluationExterne", required = false) String responsableEvaluationExterne,
+            @RequestParam("employeIds") List<Long> employeIds,
+            @RequestParam(value = "fichierPdf", required = false) MultipartFile fichierPdf,
+            @RequestParam("organisateurId") Long organisateurId,
+            @RequestParam("periodes") String periodesJson,  // Périodes en JSON
+           
+            @RequestParam("titrePoste") String titrePoste) throws IOException {
 
-    	    FormationDto formationDto = new FormationDto();
-    	    formationDto.setTitre(titre);
-    	    formationDto.setDescription(description);
-    	    formationDto.setTypeFormation(TypeFormation.valueOf(typeFormation));
-    	    formationDto.setSousTypeFormation(SousTypeFormation.valueOf(sousTypeFormation));
-    	    formationDto.setDateDebutPrevue(dateDebutPrevue);
-    	    formationDto.setDateFinPrevue(dateFinPrevue);
-    	    formationDto.setResponsableEvaluationId(responsableEvaluationId);
-    	    formationDto.setResponsableEvaluationExterne(responsableEvaluationExterne);
-    	    formationDto.setEmployeIds(employeIds);
-    	    formationDto.setFichierPdf(fichierPdf);
-    	    formationDto.setOrganisateurId(organisateurId);
-    	    formationDto.setTitrePoste(titrePoste);
+        // Création de l'objet FormationDto
+        FormationDto formationDto = new FormationDto();
+        if (periodesJson != null && !periodesJson.isEmpty()) {
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                mapper.registerModule(new JavaTimeModule());
+                List<FormationDto.PeriodeDto> periodes = mapper.readValue(
+                        periodesJson,
+                        new TypeReference<List<FormationDto.PeriodeDto>>() {});
+                System.out.println("Périodes parsées: " + periodes); // Log de débogage
+                formationDto.setPeriodes(periodes);
+            } catch (Exception e) {
+                System.err.println("Erreur parsing JSON périodes: " + e.getMessage());
+                return ResponseEntity.badRequest().body("Format JSON des périodes invalide");
+            }
+        }
+        
+        // Mise à jour de la formation avec les autres champs
+      
+     
+        formationDto.setTitre(titre);
+        formationDto.setDescription(description);
+        formationDto.setTypeFormation(TypeFormation.valueOf(typeFormation));
+        formationDto.setSousTypeFormation(SousTypeFormation.valueOf(sousTypeFormation));
+        formationDto.setDateDebutPrevue(dateDebutPrevue);
+        formationDto.setDateFinPrevue(dateFinPrevue);
+        formationDto.setResponsableEvaluationId(responsableEvaluationId);
+        formationDto.setResponsableEvaluationExterne(responsableEvaluationExterne);
+        formationDto.setEmployeIds(employeIds);
+        formationDto.setFichierPdf(fichierPdf);
+        formationDto.setOrganisateurId(organisateurId);
+        formationDto.setTitrePoste(titrePoste);
 
-    	    try {
-    	        formationService.modifierFormation(id, formationDto);
-    	        return ResponseEntity.ok("Formation modifiée avec succès.");
-    	    } catch (IllegalArgumentException e) {
-    	        return ResponseEntity.badRequest().body(e.getMessage());
-    	    } catch (ResourceNotFoundException e) {
-    	        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-    	    }
-    	}
+        try {
+            // Appel du service pour modifier la formation avec les nouvelles périodes
+            formationService.modifierFormation(id, formationDto);
+            return ResponseEntity.ok("Formation modifiée avec succès.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
+
 
     
     @PutMapping("/{formationId}/employes/{employeId}/resultat")
     public ResponseEntity<String> ajouterResultat(
-        @PathVariable Long formationId,
-        @PathVariable Long employeId,
-        @RequestParam String resultat) { // Utilisez String au lieu de ResultatFormation
+        @PathVariable("formationId") Long formationId,
+        @PathVariable("employeId") Long employeId,
+        @RequestParam ("resultat") String resultat) { // Utilisez String au lieu de ResultatFormation
 
         try {
             // Convertir manuellement la chaîne en ResultatFormation
@@ -346,8 +444,8 @@ public class FormationController {
     	)
     @GetMapping("/{formationId}/employes/{employeId}/resultat")
     public ResponseEntity<Map<String, Object>> getResultatFormation(
-        @PathVariable Long formationId,
-        @PathVariable Long employeId) {
+        @PathVariable("formationId") Long formationId,
+        @PathVariable("employeId") Long employeId) {
 
         try {
             Map<String, Object> resultatEtRes = formationService.getResultatFormation(formationId, employeId);
@@ -406,14 +504,14 @@ public class FormationController {
     
     @GetMapping("/employe/{employeId}/details")
     public ResponseEntity< List<formation_employe>> getFormationsWithDetailsByEmploye(
-            @PathVariable Long employeId) {
+            @PathVariable("employeId") Long employeId) {
         List<formation_employe> result = formationService.getFormationsWithDetailsByEmploye(employeId);
         return ResponseEntity.ok(result);
     }
     
     
     @PostMapping("/formations/{id}/date-rappel")
-    public ResponseEntity<String> ajouterDateRappel(@PathVariable Long id, @RequestBody LocalDate nouvelleDateRappel) {
+    public ResponseEntity<String> ajouterDateRappel(@PathVariable("id") Long id, @RequestBody LocalDate nouvelleDateRappel) {
         Optional<Formation> formationOpt = formationRepository.findById(id);
 
         if (formationOpt.isPresent()) {
@@ -435,7 +533,7 @@ public class FormationController {
     }
 
     @PutMapping("/formations/{id}/date-rappel")
-    public ResponseEntity<String> modifierDateRappel(@PathVariable Long id, @RequestBody LocalDate nouvelleDateRappel) {
+    public ResponseEntity<String> modifierDateRappel(@PathVariable("id") Long id, @RequestBody LocalDate nouvelleDateRappel) {
         Optional<Formation> formationOpt = formationRepository.findById(id);
         
         if (formationOpt.isPresent()) {
@@ -449,7 +547,7 @@ public class FormationController {
         }
     }
     @GetMapping("/formations/{id}/date-rappel")
-    public ResponseEntity<LocalDate> getDateRappel(@PathVariable Long id) {
+    public ResponseEntity<LocalDate> getDateRappel(@PathVariable("id") Long id) {
         Optional<Formation> formationOpt = formationRepository.findById(id);
 
         if (formationOpt.isPresent()) {
@@ -458,7 +556,43 @@ public class FormationController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
+    @Operation(
+    	    summary = "Signaler un problème sur une formation",
+    	    description = "Marque une formation comme problématique (probleme=true), non valide (valide=false) et ajoute un commentaire",
+    	    responses = {
+    	        @ApiResponse(responseCode = "200", description = "Problème signalé avec succès"),
+    	        @ApiResponse(responseCode = "404", description = "Formation non trouvée")
+    	    }
+    	)
+    	@PutMapping("/{id}/probleme")
+    	public ResponseEntity<Formation> signalerProbleme(
+    	    @Parameter(description = "ID de la formation", required = true)
+    	    @PathVariable("id") Long id,
+    	    
+    	    @Parameter(description = "Commentaire expliquant le problème", required = true)
+    	    @RequestBody String commentaire) {
+    	    
+    	    Formation formation = formationService.signalerProbleme(id, commentaire);
+    	    return ResponseEntity.ok(formation);
+    	} 
+    @PutMapping("/{id}/retirer-probleme")
+    public ResponseEntity<Formation> retirerProbleme(
+        @Parameter(description = "ID de la formation", required = true)
+        @PathVariable("id") Long id) {
 
-    
-    
+        Formation formation = formationService.retirerProbleme(id);
+        return ResponseEntity.ok(formation);
+    }
+    @PutMapping("/{id}/annuler")
+    public ResponseEntity<Formation> annuler(@PathVariable ("id") Long id) {
+        Formation updated = formationService.annulerFormation(id);
+        return ResponseEntity.ok(updated);
+    }
+
+    @PutMapping("/{id}/reactiver")
+    public ResponseEntity<Formation> reactiver(@PathVariable ("id")  Long id) {
+        Formation updated = formationService.reactiverFormation(id);
+        return ResponseEntity.ok(updated);
+    }
+
 }

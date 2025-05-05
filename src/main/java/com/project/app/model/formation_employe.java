@@ -1,5 +1,6 @@
-package com.project.app.model;
+	package com.project.app.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -34,4 +35,9 @@ public class formation_employe {
 
 	  
 	    private boolean Res = false;
+	    
+	    
+	    
+	    @Column(columnDefinition = "boolean default false")
+	    private boolean capabilite = false;
 }

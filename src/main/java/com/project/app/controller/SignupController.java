@@ -13,20 +13,27 @@ import com.project.app.dto.DirecteurRegisterDTO;
 import com.project.app.dto.RHRegisterDTO;
 import com.project.app.dto.ResponsableRegisterDTO;
 import com.project.app.model.Utilisateur;
-	import com.project.app.service.AuthService;
-	
-	import jakarta.transaction.Transactional;
+import com.project.app.repository.UtilisateurRepository;
+import com.project.app.service.AuthService;
+import com.project.app.service.JournalActionService;
+
+import jakarta.transaction.Transactional;
 	
 @RestController
 @RequestMapping("/signup")
 	public class SignupController {
 
-	    private final AuthService authService;
+	private final AuthService authService;
+    private final JournalActionService journalActionService;
+    @Autowired
+    private UtilisateurRepository utilisateurRepository;
 
-	    @Autowired
-	    public SignupController(AuthService authService) {
-	        this.authService = authService;
-	    }
+    @Autowired
+    public SignupController(AuthService authService, JournalActionService journalActionService) {
+        this.authService = authService;
+        this.journalActionService = journalActionService;
+    }
+
 
 	    @PostMapping("/admin")
 	    @Transactional

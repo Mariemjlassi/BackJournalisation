@@ -30,17 +30,17 @@ public class StageController {
     }
 
     @DeleteMapping("/{employeId}/stages/{stageId}")
-    public void removeStageFromEmploye(@PathVariable Long employeId, @PathVariable Long stageId) {
+    public void removeStageFromEmploye(@PathVariable ("employeId") Long employeId, @PathVariable ("stageId")Long stageId) {
         stageService.removeStageFromEmploye(employeId, stageId);
     }
 
     @PutMapping("/{stageId}")
-    public Stage updateStage(@PathVariable Long stageId, @RequestBody Stage updatedStage) {
+    public Stage updateStage(@PathVariable ("stageId")  Long stageId, @RequestBody Stage updatedStage) {
         return stageService.updateStage(stageId, updatedStage);
     }
 
     @GetMapping("/{employeId}/stages")
-    public List<Stage> getStagesByEmployeId(@PathVariable Long employeId) {
+    public List<Stage> getStagesByEmployeId(@PathVariable  ("employeId") Long employeId) {
         return stageService.getStagesByEmployeId(employeId);
     }
 }

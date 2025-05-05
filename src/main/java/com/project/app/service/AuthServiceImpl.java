@@ -27,13 +27,7 @@ import jakarta.mail.MessagingException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
 
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
 
 @Service
 public class AuthServiceImpl implements AuthService{
@@ -173,9 +167,7 @@ public class AuthServiceImpl implements AuthService{
 	
 	
 
-	public void updateLastLogin(String username) {
-        utilisateurRepository.updateLastLogin(username, LocalDateTime.now());
-    }
+	
 
 
 

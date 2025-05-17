@@ -14,6 +14,8 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,9 +38,13 @@ import com.project.app.model.Formation;
 import com.project.app.model.ResultatFormation;
 import com.project.app.model.SousTypeFormation;
 import com.project.app.model.TypeFormation;
+import com.project.app.model.Utilisateur;
 import com.project.app.model.formation_employe;
 import com.project.app.repository.FormationRepository;
+import com.project.app.repository.UtilisateurRepository;
 import com.project.app.service.FormationService;
+import com.project.app.service.JournalActionService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -54,13 +60,23 @@ import jakarta.validation.Valid;
 @Validated
 public class FormationController {
 
-    private final FormationService formationService;
+	private final FormationService formationService;
+    private final JournalActionService journalActionService;
+    private final UtilisateurRepository utilisateurRepository;
+    
     @Autowired
-    private  FormationRepository formationRepository;
+    private FormationRepository formationRepository;
+    
     @Autowired
-    public FormationController(FormationService formationService) {
+    public FormationController(FormationService formationService, 
+                             JournalActionService journalActionService,
+                             UtilisateurRepository utilisateurRepository) {
         this.formationService = formationService;
+        this.journalActionService = journalActionService;
+        this.utilisateurRepository = utilisateurRepository;
     }
+
+    
     @Operation(
     	    summary = "Modifier le document PDF d'un employé pour une formation spécifique",
     	    description = "Cet endpoint permet de mettre à jour le fichier PDF associé à un employé pour une formation donnée. " +
@@ -225,8 +241,14 @@ public class FormationController {
     	        @RequestParam(value = "periodes", required = false) String periodesJson,
     	        @RequestParam("enteteId") Long enteteId,
     	        
-    	        @RequestParam("titrePoste") String titrePoste) throws IOException {
-
+    	        @RequestParam("titrePoste") String titrePoste,
+    	        Authentication authentication) throws IOException {
+    	
+    	Utilisateur currentUser = utilisateurRepository.findByUsername(authentication.getName())
+                .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé"));
+    	
+    	journalActionService.logAction(currentUser, "Création_Formation", 
+                "Création de la formation: " + titre );
     	    FormationDto formationDto = new FormationDto();
     	    formationDto.setTitre(titre);
     	    formationDto.setDescription(description);
@@ -258,6 +280,8 @@ public class FormationController {
     	        }
     	    }
     	    Long formationId = formationService.ajouterFormation(formationDto);
+    	    
+    	    
     	    return ResponseEntity.ok(formationId);
     	}
 

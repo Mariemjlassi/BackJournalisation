@@ -1,6 +1,7 @@
 package com.project.app.controller;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -12,7 +13,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.project.app.dto.EmpComptDTO;
 import com.project.app.model.Competence;
+import com.project.app.model.EmployeCompetence;
+import com.project.app.repository.EmployeCompetenceRepository;
 import com.project.app.service.CompetenceService;
 
 import lombok.RequiredArgsConstructor;
@@ -23,6 +27,7 @@ import lombok.RequiredArgsConstructor;
 public class CompetenceController {
 
     private final CompetenceService competenceService;
+    private final EmployeCompetenceRepository employeCompetenceRepository;
 
     @GetMapping
     public List<Competence> getAllCompetences() {
@@ -58,5 +63,22 @@ public class CompetenceController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+    
+    @GetMapping("/{id}/employes")
+    public ResponseEntity<List<EmpComptDTO>> getEmployesWithCompetence(@PathVariable Long id) {
+        List<EmployeCompetence> employeCompetences = employeCompetenceRepository.findByCompetenceId(id);
+        
+        List<EmpComptDTO> dtos = employeCompetences.stream()
+            .map(ec -> new EmpComptDTO(
+                ec.getEmploye().getId(),
+                ec.getEmploye().getNom(),
+                ec.getEmploye().getPrenom(),
+                ec.getEmploye().getMatricule(),
+                ec.getNiveau()
+            ))
+            .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(dtos);
     }
 }

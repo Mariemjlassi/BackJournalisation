@@ -80,6 +80,11 @@ public class JournalActionService {
             journalActionRepository.save(journal);
         }
     }
+    
+    public List<JournalAction> getAllJournalActions() {
+        return journalActionRepository.findAllByOrderByTimestampDesc();
+    }
+
 
 }
 

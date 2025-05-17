@@ -166,6 +166,81 @@ public class AuthServiceImpl implements AuthService{
 	}
 	
 	
+	@Override
+	@Transactional
+	public Utilisateur incrementFailedLoginAttempts(String username) {
+	    Utilisateur utilisateur = utilisateurRepository.findByUsername(username)
+	            .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé"));
+	    
+	    int newAttempts = utilisateur.getFailedLoginAttempts() + 1;
+	    utilisateur.setFailedLoginAttempts(newAttempts);
+	    
+	    if (newAttempts >= 3) {
+	        utilisateur.setAccountLocked(true);
+	        utilisateur.setLockTime(LocalDateTime.now());
+	    }
+	    
+	    utilisateurRepository.save(utilisateur);
+	    return utilisateur;
+	}
+	
+	@Transactional
+	public void resetFailedLoginAttempts(String username) {
+	    Utilisateur utilisateur = utilisateurRepository.findByUsername(username)
+	            .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé"));
+	    
+	    utilisateur.setFailedLoginAttempts(0);
+	    utilisateur.setAccountLocked(false);
+	    utilisateur.setLockTime(null);
+	    utilisateurRepository.save(utilisateur);
+	}
+
+	
+	@Transactional
+	public boolean isAccountLocked(String username) {
+	    Utilisateur utilisateur = utilisateurRepository.findByUsername(username)
+	            .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé"));
+	    
+	    Boolean locked = utilisateur.getAccountLocked();
+	    
+	    // Par défaut, on considère que le compte n'est pas verrouillé si null
+	    if (Boolean.TRUE.equals(locked)) {
+	        // Déverrouiller automatiquement après 30 minutes
+	        if (utilisateur.getLockTime() != null &&
+	            utilisateur.getLockTime().plusMinutes(30).isBefore(LocalDateTime.now())) {
+	            resetFailedLoginAttempts(username);
+	            return false;
+	        }
+	        return true;
+	    }
+	    
+	    return false;
+	}
+
+	
+	
+	@Transactional
+	public int getFailedAttempts(String username) {
+	    Utilisateur utilisateur = utilisateurRepository.findByUsername(username)
+	            .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé"));
+	    return utilisateur.getFailedLoginAttempts();
+	}
+	
+	@Transactional
+	public void lockAccount(String username) {
+	    Utilisateur utilisateur = utilisateurRepository.findByUsername(username)
+	            .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé"));
+	    
+	    utilisateur.setAccountLocked(true);
+	    utilisateur.setLockTime(LocalDateTime.now());
+	    utilisateurRepository.save(utilisateur);
+	}
+	
+	@Transactional
+	public void unlockAccount(String username) {
+	    this.resetFailedLoginAttempts(username); // Réutilise la méthode existante
+	}
+	
 
 	
 

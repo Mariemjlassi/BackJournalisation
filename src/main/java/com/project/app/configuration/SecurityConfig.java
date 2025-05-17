@@ -63,7 +63,7 @@ public class SecurityConfig {
 	                    .requestMatchers("/notifications/**", "/competences_poste/**", "/api/entetes/**").permitAll()
 	                    .requestMatchers("/api/formation-poste/**").permitAll()
 	                    .requestMatchers("/password-reset/**", "/permissions/**", "/formations/**", "/api/competences/**","/employecompetences/**").permitAll()
-	                    .requestMatchers("/utilisateurs/**").permitAll()
+	                    .requestMatchers("/utilisateurs/**","/api/emergency", "/api/reporting/employes").permitAll()
 	                    .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
 	                    .anyRequest().authenticated()
 	            )

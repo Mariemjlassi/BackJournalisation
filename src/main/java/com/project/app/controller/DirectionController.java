@@ -7,6 +7,8 @@ import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,7 +22,10 @@ import com.project.app.dto.DirectionRequest;
 import com.project.app.dto.SiteRequest;
 import com.project.app.model.Direction;
 import com.project.app.model.Site;
+import com.project.app.model.Utilisateur;
+import com.project.app.repository.UtilisateurRepository;
 import com.project.app.service.DirectionService;
+import com.project.app.service.JournalActionService;
 
 @RestController
 @RequestMapping("/api/directions")
@@ -29,9 +34,21 @@ public class DirectionController {
 @Autowired
 private DirectionService directionservice;
 
+@Autowired
+private JournalActionService journalActionService;
+
+@Autowired
+private UtilisateurRepository utilisateurRepository;
+
 
 @GetMapping
-public List<Direction> getAllDirectionsnonArchivés() {
+public List<Direction> getAllDirectionsnonArchivés(Authentication authentication) {
+    Utilisateur currentUser = utilisateurRepository.findByUsername(authentication.getName())
+            .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé"));
+    
+    journalActionService.logActionIfNeeded(currentUser, "Consultation", 
+            "Consultation de la liste des directions non archivées");
+    
     return directionservice.getAllDirectionsnonArchivés();
 }
 
@@ -40,11 +57,10 @@ public List<Direction> getAllDirectionsnonArchivés() {
 @PutMapping("/archiver")
 public ResponseEntity<Direction> archiverDirection(@RequestBody DirectionRequest request) {
     try {
-        // Utilisation du service pour archiver la direction avec l'ID dans le corps
         Direction direction = directionservice.archiverDirection(request.getId());
-        return ResponseEntity.ok(direction);  // Retourner la direction archivée en réponse
+        return ResponseEntity.ok(direction); 
     } catch (RuntimeException e) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);  // Retour d'une erreur 404 si direction non trouvée
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);  
     }
 }
 

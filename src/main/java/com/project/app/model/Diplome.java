@@ -33,7 +33,7 @@ public class Diplome {
     }
     
     @ManyToOne
-    @JoinColumn(name = "employe_id") 
+    @JoinColumn(name = "employe_id")
     private Employe employe;
 
     @JsonIgnoreProperties("diplomes")

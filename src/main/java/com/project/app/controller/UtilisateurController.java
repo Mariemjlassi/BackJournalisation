@@ -1,18 +1,22 @@
 package com.project.app.controller;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.apache.velocity.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -49,12 +53,11 @@ public class UtilisateurController {
     }
 	
 	@GetMapping
-	@PreAuthorize("hasAuthority('PERM_VOIR')") // Ajoutez la permission appropriée
+	@PreAuthorize("hasAuthority('PERM_VOIR')")
 	public ResponseEntity<List<UtilisateurResponseDto>> getAllUtilisateurs(Authentication authentication) {
 	    Utilisateur currentUser = utilisateurRepository.findByUsername(authentication.getName())
 	            .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé"));
 	    
-	    // Journalisation de l'action de consultation
 	    journalActionService.logActionIfNeeded(currentUser, "Consultation", 
 	            "Consultation de la liste des utilisateurs");
 	    
@@ -67,27 +70,39 @@ public class UtilisateurController {
 	            user.getUsername(),
 	            user.getRole(),
 	            user.getPermissions(),
-	            user.getLastLogin()
+	            user.getLastLogin(),
+	            user.getAccountLocked() // Ajoutez cette ligne
 	        ))
 	        .collect(Collectors.toList());
 
 	    return ResponseEntity.ok(utilisateurs);
 	}
 	
-    private UtilisateurResponseDto convertToDto(Utilisateur utilisateur) {
-        String role = "";
-        if (utilisateur instanceof Administrateur) {
-            role = "ADMIN";
-        } else if (utilisateur instanceof Directeur) {
-            role = "DIRECTEUR";
-        } else if (utilisateur instanceof RH) {
-            role = "RH";
-        } else if (utilisateur instanceof Responsable) {
-            role = "RESPONSABLE";
-        }
+	private UtilisateurResponseDto convertToDto(Utilisateur utilisateur) {
+	    String role = "";
+	    if (utilisateur instanceof Administrateur) {
+	        role = "ADMIN";
+	    } else if (utilisateur instanceof Directeur) {
+	        role = "DIRECTEUR";
+	    } else if (utilisateur instanceof RH) {
+	        role = "RH";
+	    } else if (utilisateur instanceof Responsable) {
+	        role = "RESPONSABLE";
+	    }
 
-        return new UtilisateurResponseDto(utilisateur.getId(), utilisateur.getNom(), utilisateur.getPrenom(), utilisateur.getEmail(), utilisateur.getUsername(), role, utilisateur.getPermissions());
-    }
+	    return new UtilisateurResponseDto(
+	        utilisateur.getId(),
+	        utilisateur.getNom(),
+	        utilisateur.getPrenom(),
+	        utilisateur.getEmail(),
+	        utilisateur.getUsername(),
+	        role,
+	        utilisateur.getPermissions(),
+	        utilisateur.getLastLogin(),
+	        utilisateur.getAccountLocked() // Ajoutez cette ligne
+	    );
+	}
+	
     @GetMapping("/responsables")
     public ResponseEntity<List<UtilisateurResponseDto>> getResponsables() {
         // Filtrer les utilisateurs ayant le rôle Responsable
@@ -109,6 +124,13 @@ public class UtilisateurController {
         Utilisateur currentUser = utilisateurRepository.findByUsername(authentication.getName())
                 .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé"));
         
+        Utilisateur targetUser = utilisateurRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé"));
+        
+        if (targetUser instanceof Administrateur) {
+            throw new AccessDeniedException("Un admin ne peut pas supprimer un autre admin");
+        }
+        
         Utilisateur utilisateur = utilisateurRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé avec l'ID : " + id));
         utilisateurRepository.deleteById(id);
@@ -128,6 +150,13 @@ public class UtilisateurController {
 
         Utilisateur currentUser = utilisateurRepository.findByUsername(authentication.getName())
                 .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé"));
+        
+        Utilisateur targetUser = utilisateurRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé"));
+        
+        if (targetUser instanceof Administrateur) {
+            throw new AccessDeniedException("Un admin ne peut pas modifier un autre admin");
+        }
 
         return utilisateurRepository.findById(id)
                 .map(utilisateur -> {
@@ -192,7 +221,51 @@ public class UtilisateurController {
 
         return ResponseEntity.ok(actions);
     }
+    
+    
+    @PostMapping("/{id}/lock")
+    public ResponseEntity<Map<String, String>> lockAccount(@PathVariable("id") Long id, Authentication authentication) {
+        Utilisateur currentUser = utilisateurRepository.findByUsername(authentication.getName())
+                .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé"));
+        
+        Utilisateur utilisateur = utilisateurRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé"));
+        
+        authServiceImpl.lockAccount(utilisateur.getUsername());
+        
+        journalActionService.logAction(currentUser, "Verrouillage", 
+                "Verrouillage manuel du compte utilisateur: " + utilisateur.getUsername());
+        
+        return ResponseEntity.ok(Map.of("message", "Compte verrouillé avec succès"));
+    }
 
+    @PostMapping("/{id}/unlock")
+    public ResponseEntity<Map<String, String>> unlockAccount(@PathVariable("id") Long id, Authentication authentication) {
+        Utilisateur currentUser = utilisateurRepository.findByUsername(authentication.getName())
+                .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé"));
+        
+        Utilisateur utilisateur = utilisateurRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé"));
+        
+        authServiceImpl.unlockAccount(utilisateur.getUsername());
+        
+        journalActionService.logAction(currentUser, "Déverrouillage", 
+                "Déverrouillage manuel du compte utilisateur: " + utilisateur.getUsername());
+        
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Compte déverrouillé avec succès");
+
+        return ResponseEntity
+                .ok()
+                .contentType(MediaType.APPLICATION_JSON) // <-- Forcer le Content-Type
+                .body(response);
+    }
+    
+    @GetMapping("/journal/all")
+    public ResponseEntity<List<JournalAction>> getAllJournalActions() {
+        List<JournalAction> actions = journalActionService.getAllJournalActions();
+        return ResponseEntity.ok(actions);
+    }
 
     
 

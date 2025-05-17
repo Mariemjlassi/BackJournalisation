@@ -23,7 +23,7 @@ public class Competence {
 
     private String nom;
 
-    @OneToMany(mappedBy = "competence", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "competence")
     @JsonIgnore
     private List<EmployeCompetence> employeCompetences = new ArrayList<>();
 }

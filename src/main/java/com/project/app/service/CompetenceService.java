@@ -45,6 +45,12 @@ public class CompetenceService {
     public void delete(Long id) {
         Competence competence = competenceRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Compétence non trouvée"));
+
+        if (!competence.getEmployeCompetences().isEmpty()) {
+            throw new RuntimeException("Impossible de supprimer cette compétence car elle est associée à un ou plusieurs employés.");
+        }
+
         competenceRepository.delete(competence);
     }
+
 }

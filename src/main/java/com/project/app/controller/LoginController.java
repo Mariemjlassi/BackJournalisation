@@ -71,9 +71,17 @@ public class LoginController {
     @PostMapping
     public ResponseEntity<?> login(@RequestBody LoginDto loginRequest) {
         try {
+        	
+        	if (authService.isAccountLocked(loginRequest.getUsername())) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body("Compte temporairement verrouillé. Veuillez réessayer plus tard.");
+            }
             // Authentification utilisateur par username
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+            
+         // Réinitialiser les tentatives échouées après une connexion réussie
+            authService.resetFailedLoginAttempts(loginRequest.getUsername());
             
          // Mettre à jour lastLogin après authentification réussie
             Utilisateur utilisateur = utilisateurRepository.findByUsername(loginRequest.getUsername())
@@ -86,7 +94,28 @@ public class LoginController {
                 journalActionService.logAction(utilisateur, "Login", "Connexion réussie");
                 
         } catch (BadCredentialsException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Incorrect username or password.");
+        	 try {
+                 Utilisateur utilisateur = authService.incrementFailedLoginAttempts(loginRequest.getUsername());
+                 // Journaliser l'échec de connexion
+                 journalActionService.logAction(
+                     utilisateur, 
+                     "TENTATIVE_CONNEXION_ECHOUEE", 
+                     "Échec de la connexion - Tentative " + utilisateur.getFailedLoginAttempts()
+                 );
+
+                 if (authService.isAccountLocked(loginRequest.getUsername())) {
+                     return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                             .body("Trop de tentatives échouées. Compte verrouillé pendant 30 minutes.");
+                 }
+                 
+                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                         .body("Identifiant ou mot de passe incorrect. Tentatives restantes: " + 
+                              (3 - utilisateur.getFailedLoginAttempts()));
+             } catch (UsernameNotFoundException ex) {
+                 // Cas où l'utilisateur n'existe pas
+                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                         .body("Identifiant ou mot de passe incorrect.");
+             }
         }
         
         // Charger les détails de l'utilisateur
